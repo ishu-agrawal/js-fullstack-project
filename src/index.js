@@ -1,3 +1,4 @@
+import express from 'express';
 // require('dotenv').config({path: './env'});
 import dotenv from 'dotenv'
 
@@ -29,7 +30,7 @@ const app = express();
 // APPROACH -2 : exporting DB conn
 
 import connectDB from './db/index.js';
-
+const app = express();
 dotenv.config({
     path: './env'
 })
