@@ -4,6 +4,24 @@ import {User} from '../models/user.models.js';
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from '../utils/apiResponse.js';
 
+const generateAccessAndRefreshTokens = async(userId) => {
+    try {
+        const user = await User.findById(userId);
+        const refreshToken = user.generateRefreshToken()
+        const accessToken =  user.generateAccessToken()
+
+        user.refreshToken = refreshToken
+
+        // adding validateBeforeSave as password,email, etc.. are required while saving user
+        // this will allow us to save user, without validating all these fields
+        await user.save({validateBeforeSave: false}) 
+        return {accessToken, refreshToken}
+    } catch (err) {
+        throw new ApiError(500, "Something went wrong while generating Access and Refresh Tokens");
+    }
+}
+
+
 const registerUser = asyncHandler( async (req, res) => {
     // res.status(200).json({
     //     message: "ok"
@@ -77,4 +95,88 @@ const registerUser = asyncHandler( async (req, res) => {
 
 })
 
-export { registerUser }
+const loginUser = asyncHandler(async (req, res) => {
+    // req body -> data
+    // username or email
+    // find the user
+    // password check
+    // access and refersh token
+    // send cookie
+
+    const {email, username, password} = req.body;
+
+    if(!username || !email) {
+        throw new ApiError(400, "username or email is required")
+    }
+
+    const user = await User.findOne({
+        $or: [{ username }, { email }] // will return user whose username / email matches
+    })
+
+    if(!user){
+        throw new ApiError(404, "user does not exists")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+    if(!isPasswordValid){
+        throw new ApiError(401, "invalid user credentials")
+    }
+
+    const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    const loggedInUser = await User.findById(user._id).
+        select(" -password -refreshToken")
+
+    // cookies
+    // cookies are modifiable in FE
+    // making httpOnly and secure as true will allow us to modify cookies only through server
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json( new ApiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken, refreshToken
+            },
+            "User logged in Successfully"
+        ))
+})
+
+const logoutUser = asyncHandler( async (req, res) => {
+    // user created in verifyJWT can be accessed here as well
+    // as same req is passed on
+    // req.user._id
+
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        }, 
+        {
+            new: true // will pass updated values in res
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User logged out successfully"))
+})
+
+export { 
+    registerUser,
+    loginUser,
+    logoutUser
+}
