@@ -1,3 +1,4 @@
+import express from 'express';
 // require('dotenv').config({path: './env'});
 import dotenv from 'dotenv'
 

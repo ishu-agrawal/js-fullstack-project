@@ -1,7 +1,7 @@
 {
   "name": "js-project",
   "version": "1.0.0",
-  "description": "",
+  "description": "This is a video series on backend with javascript\r - [Model link](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj?origin=share)",
   "main": "index.js",
   "type": "module",
   "scripts": {
