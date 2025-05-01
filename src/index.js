@@ -27,18 +27,17 @@ const app = express();
 
 
 // APPROACH -2 : exporting DB conn
-
+import { app } from './app.js';
 import connectDB from './db/index.js';
-
 dotenv.config({
     path: './env'
 })
 
 connectDB()
 .then(() => {
-    app.listen(process.env.POST || 8000), () => {
+    app.listen(process.env.POST || 3000, () => {
         console.log(`Server is running at port ${process.env.PORT}`)
-    }
+    })
     app.on('error', (error) => {
         console.log('ERROR: ', error);
     })
